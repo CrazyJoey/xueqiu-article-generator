@@ -11,7 +11,7 @@ DEFAULT_CONFIG_FILE="$(dirname "$0")/default.config"
 
 # 默认配置
 DEFAULT_TAVILY_API_KEY=""
-DEFAULT_OUTPUT_DIR="$HOME/Documents/xueqiu-articles"
+DEFAULT_OUTPUT_DIR="/home/admin/.openclaw/workspace/xueqiu-articles"
 DEFAULT_MAX_LENGTH="market_impact"  # 可选: market_impact, full_analysis
 
 # 加载配置
@@ -29,13 +29,13 @@ load_config() {
 # 初始化配置
 init_config() {
     mkdir -p "$(dirname "$CONFIG_FILE")"
-    cat > "$CONFIG_FILE" << EOF
+    cat > "$CONFIG_FILE" <<EOF
 # xueqiu-article-generator 配置文件
 # Tavily API Key (从 https://tavily.com 获取)
 TAVILY_API_KEY="your_api_key_here"
 
 # 输出目录
-OUTPUT_DIR="$HOME/Documents/xueqiu-articles"
+OUTPUT_DIR="/home/admin/.openclaw/workspace/xueqiu-articles"
 
 # 文章长度限制
 # market_impact - 只到市场影响部分（推荐）
@@ -66,51 +66,33 @@ search_tech_news() {
         }'
 }
 
-# 生成文章草稿
+# 生成优化后的文章草稿（简化结构）
 generate_article_draft() {
-    local news_data="$1"
-    local max_length="$2"
+    local topic="$1"
+    local stocks="$2"
     
-    echo "生成文章草稿..."
+    echo "生成优化文章草稿..."
     
-    # 这里应该调用 AI 模型来生成文章
-    # 由于我们是在脚本中，这里提供一个模板
-    cat << EOF
-**标题：基于最新科技新闻的投资分析**
-
-**正文：**
-
-根据最新科技新闻分析：
+    # 创建简化结构的文章模板
+    cat <<EOF
+# 英伟达财报超预期，AI芯片需求持续强劲
 
 ### 一、事件深度解析
 
-[AI生成的内容]
+[在此处插入基于最新新闻的深度分析内容]
 
-### 二、对科技股的结构性影响
+### 二、对股票的结构性影响
 
-[AI生成的内容]
+[在此处插入对相关股票的结构性影响分析]
+
+### 三、结语
+
+[在此处插入总结性观点]
+
+---
+
+**相关股票**：$stocks
 EOF
-
-    if [ "$max_length" = "full_analysis" ]; then
-        cat << EOF
-
-### 三、重点标的分析与投资建议
-
-[AI生成的内容]
-
-### 四、投资策略建议
-
-[AI生成的内容]
-
-### 五、风险提示
-
-[AI生成的内容]
-
-### 六、结语
-
-[AI生成的内容]
-EOF
-    fi
 }
 
 # 主函数
@@ -131,32 +113,35 @@ main() {
                 exit 1
             fi
             
-            local query="latest AI and tech news investment analysis"
+            local topic="NVIDIA latest earnings AI chip demand"
+            local stocks="\$NVDA \$AMD \$TSM \$MU \$MSFT \$AMZN \$GOOGL"
+            
             if [ $# -gt 0 ]; then
-                query="$*"
+                topic="$*"
             fi
             
             # 创建输出目录
             mkdir -p "$OUTPUT_DIR"
             
-            # 搜索新闻
-            local news_data
-            news_data=$(search_tech_news "$query" "$TAVILY_API_KEY")
-            
             # 生成文章
             local article_file="$OUTPUT_DIR/article_$(date +%Y%m%d_%H%M%S).md"
-            generate_article_draft "$news_data" "$MAX_LENGTH" > "$article_file"
+            generate_article_draft "$topic" "$stocks" > "$article_file"
             
-            echo "文章已生成: $article_file"
+            echo "优化文章已生成: $article_file"
             ;;
         "help"|*)
-            cat << EOF
-xueqiu-article-generator - 雪球文章生成器
+            cat <<EOF
+xueqiu-article-generator - 雪球文章生成器（优化版）
 
 用法:
   xueqiu-article-generator init          # 初始化配置文件
   xueqiu-article-generator generate      # 生成文章（使用默认查询）
   xueqiu-article-generator generate [查询关键词]  # 生成文章（使用自定义查询）
+
+文章结构：
+  ### 一、事件深度解析
+  ### 二、对股票的结构性影响  
+  ### 三、结语
 
 配置文件: $CONFIG_FILE
 EOF
