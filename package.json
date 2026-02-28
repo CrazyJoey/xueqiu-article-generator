@@ -1,0 +1,12 @@
+{
+  "name": "xueqiu-article-generator",
+  "version": "1.0.0",
+  "description": "Generate professional Xueqiu articles based on latest tech news and market analysis",
+  "main": "xueqiu-article-generator.sh",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["xueqiu", "stock", "article", "tech-news", "investment"],
+  "author": "joey.y.hou",
+  "license": "MIT"
+}
