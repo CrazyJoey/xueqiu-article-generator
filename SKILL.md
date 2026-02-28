@@ -6,12 +6,15 @@ This skill generates professional stock market analysis articles for Xueqiu (Sno
 
 - Fetches latest technology and AI news using Tavily Search API
 - Analyzes market impact and stock correlations  
-- Generates concise articles with 3-section structure:
+- Generates articles in **dual format**:
+  - **Markdown format**: Optimized for Xueqiu platform posting
+  - **HTML/Docs format**: Professional web-ready documentation
+- Uses optimized 3-section structure:
   - **事件深度解析** (Event Deep Analysis)
-  - **对股票的结构性影响** (Structural Impact on Stocks)
+  - **对股票的结构性影响** (Structural Impact on Stocks)  
   - **结语** (Conclusion)
 - Includes proper stock tags for Xueqiu platform
-- Supports image capture from news sources for article illustration
+- Supports image integration for enhanced articles
 
 ## Usage
 
@@ -21,45 +24,52 @@ This skill generates professional stock market analysis articles for Xueqiu (Sno
 
 2. **Generate Article**:
    ```bash
-   xueqiu-article-generator --topic "NVIDIA earnings AI chips" --stocks "NVDA,AMD,TSM"
-   ```
-
-3. **Simple Usage**:
-   ```bash
    # Initialize configuration
    xueqiu-article-generator init
    
-   # Generate article with default settings
+   # Generate article with default settings (outputs both .md and .html)
    xueqiu-article-generator generate
    
-   # Generate article with custom topic
-   xueqiu-article-generator generate "NVIDIA latest earnings"
+   # Generate article with custom topic (outputs both formats)
+   xueqiu-article-generator generate "NVIDIA earnings AI chip demand"
    ```
+
+3. **Output Files**:
+   - `article_YYYYMMDD_HHMMSS.md` - Markdown format for Xueqiu
+   - `article_YYYYMMDD_HHMMSS.html` - HTML format for web/docs
 
 ## Configuration
 
 Create `.env` file in your workspace or use the built-in config:
 ```
 TAVILY_API_KEY=your_tavily_api_key_here
+OUTPUT_DIR=/path/to/output/directory
 ```
 
 ## Output Format
 
-Articles follow the optimized 3-section structure:
-- **事件深度解析**: Latest news event with date and context
-- **对股票的结构性影响**: Market impact analysis on related stocks
-- **结语**: Concise conclusion with investment perspective
+### Markdown Format (Xueqiu optimized)
+- Clean, simple formatting suitable for Snowball platform
+- Proper stock ticker formatting ($NVDA $AMD $TSM)
+- Three-section structure for easy reading
+
+### HTML/Docs Format (Web ready)
+- Professional styling with proper typography
+- Responsive design for mobile and desktop
+- Enhanced readability with proper spacing and colors
+- Ready to publish as standalone web page or documentation
 
 ## Requirements
 
 - OpenClaw browser control enabled (optional for image capture)
 - Tavily Search API key
 - Internet connectivity for news fetching
+- Basic HTML/CSS support for docs output
 
 ## Examples
 
 ```bash
-# Generate NVIDIA-focused article
+# Generate NVIDIA-focused article (outputs both .md and .html)
 xueqiu-article-generator generate "NVIDIA earnings AI chip demand"
 
 # Generate semiconductor sector analysis
