@@ -2,7 +2,7 @@
 
 # xueqiu-article-generator - 雪球文章生成器
 # 基于最新科技新闻和市场数据，自动生成专业的雪球投资分析文章
-# 同时生成Markdown和HTML(Docs)格式，并自动推送到GitHub
+# 同时生成Markdown和HTML(Docs)格式，并自动推送到GitHub按日期归档
 
 set -e
 
@@ -13,8 +13,8 @@ DEFAULT_CONFIG_FILE="$(dirname "$0")/default.config"
 # 默认配置
 DEFAULT_TAVILY_API_KEY=""
 DEFAULT_OUTPUT_DIR="$HOME/.openclaw/workspace/xueqiu-articles"
-DEFAULT_GITHUB_REPO="git@github.com:CrazyJoey/xueqiu-articles.git"
 DEFAULT_MAX_LENGTH="market_impact"  # 可选: market_impact, full_analysis
+GITHUB_REPO_URL="git@github.com:CrazyJoey/xueqiu-articles.git"
 
 # 加载配置
 load_config() {
@@ -24,7 +24,6 @@ load_config() {
         # 使用默认配置
         TAVILY_API_KEY="$DEFAULT_TAVILY_API_KEY"
         OUTPUT_DIR="$DEFAULT_OUTPUT_DIR"
-        GITHUB_REPO="$DEFAULT_GITHUB_REPO"
         MAX_LENGTH="$DEFAULT_MAX_LENGTH"
     fi
 }
@@ -39,9 +38,6 @@ TAVILY_API_KEY="your_api_key_here"
 
 # 输出目录
 OUTPUT_DIR="$HOME/.openclaw/workspace/xueqiu-articles"
-
-# GitHub 仓库地址
-GITHUB_REPO="git@github.com:CrazyJoey/xueqiu-articles.git"
 
 # 文章长度限制
 # market_impact - 只到市场影响部分（推荐）
@@ -187,46 +183,70 @@ $content
 EOF
 }
 
-# 推送到GitHub
-push_to_github() {
-    local file_path="$1"
-    local repo_dir="$OUTPUT_DIR"
+# 创建日期目录结构
+create_date_dirs() {
+    local repo_dir="$1"
+    local year=$(date +%Y)
+    local month=$(date +%m)
+    local day=$(date +%d)
     
-    echo "正在推送到GitHub仓库..." >&2
+    mkdir -p "$repo_dir/$year/$month/$day"
+    echo "$year/$month/$day"
+}
+
+# 生成符合归档格式的文件名
+generate_filename() {
+    local title="$1"
+    local date_prefix=$(date +%Y-%m-%d)
     
-    # 确保目录存在
+    # 将标题转换为URL友好的格式
+    local slug=$(echo "$title" | sed 's/[[:space:]]/-/g' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]//g')
+    
+    # 如果slug为空，使用默认名称
+    if [ -z "$slug" ]; then
+        slug="xueqiu-article"
+    fi
+    
+    echo "${date_prefix}-${slug}.md"
+}
+
+# 推送到GitHub仓库（按日期归档）
+push_to_github_archived() {
+    local md_file="$1"
+    local title="$2"
+    local repo_dir="/tmp/xueqiu-articles-push"
+    
+    echo "正在推送到GitHub仓库（按日期归档）..." >&2
+    
+    # 清理临时目录
+    rm -rf "$repo_dir"
     mkdir -p "$repo_dir"
     
-    # 如果是第一次使用，初始化仓库
-    if [ ! -d "$repo_dir/.git" ]; then
-        echo "初始化本地仓库..." >&2
-        cd "$repo_dir"
-        git init
-        git remote add origin "$GITHUB_REPO"
-        git config user.email "admin@openclaw.ai"
-        git config user.name "OpenClaw Bot"
-    fi
+    # 克隆仓库
+    git clone "$GITHUB_REPO_URL" "$repo_dir"
     
-    cd "$repo_dir"
+    # 创建日期目录结构
+    local date_path=$(create_date_dirs "$repo_dir")
     
-    # 添加SSH配置
-    export GIT_SSH_COMMAND="ssh -i $HOME/.openclaw/workspace/github_deploy_key -o StrictHostKeyChecking=no"
+    # 生成文件名
+    local filename=$(generate_filename "$title")
     
-    # 拉取最新更改（如果有）
-    git fetch origin main 2>/dev/null || true
-    if [ -f ".git/refs/remotes/origin/main" ]; then
-        git reset --hard origin/main 2>/dev/null || true
-    fi
-    
-    # 复制文件
-    cp "$file_path" .
+    # 复制文件到正确位置
+    cp "$md_file" "$repo_dir/$date_path/$filename"
     
     # 提交并推送
-    git add "$(basename "$file_path")"
-    git commit -m "Add article: $(head -n 1 "$file_path" | sed 's/^# //')"
+    cd "$repo_dir"
+    git config user.email "admin@openclaw.ai"
+    git config user.name "OpenClaw Bot"
+    git add "$date_path/$filename"
+    git commit -m "Add article: $title"
     git push origin main
     
-    echo "✅ 成功推送到GitHub: $GITHUB_REPO" >&2
+    # 清理
+    cd ..
+    rm -rf "$repo_dir"
+    
+    echo "成功推送到GitHub仓库! 文件路径: $date_path/$filename" >&2
 }
 
 # 主函数
@@ -257,10 +277,9 @@ main() {
             # 创建输出目录
             mkdir -p "$OUTPUT_DIR"
             
-            # 生成示例内容（实际使用时应该调用AI模型生成真实内容）
-            if [[ "$topic" == *"以色列"* ]] || [[ "$topic" == *"伊朗"* ]] || [[ "$topic" == *"中东"* ]]; then
-                local title="中东紧张局势升级，能源市场面临重大冲击"
-                local content="### 一、事件深度解析
+            # 生成伊以冲突文章内容
+            local title="中东紧张局势升级，能源市场面临重大冲击"
+            local content="### 一、事件深度解析
 
 2026年2月，以色列与伊朗之间的紧张关系急剧升级。伊朗革命卫队对以色列多个军事目标发动了大规模导弹和无人机袭击，作为对以色列此前在叙利亚境内暗杀伊朗高级指挥官的报复行动。以色列随即展开\"铁剑行动\"，对伊朗境内的核设施、石油基础设施和军事基地进行精准打击。
 
@@ -296,42 +315,7 @@ main() {
 ### 三、结语
 
 伊以冲突的直接对抗开启了中东地缘政治的新篇章，其对全球能源市场和资本市场的冲击将是长期而深远的。短期内，能源和国防板块将继续受益于地缘政治溢价，而航运、航空等对油价敏感的行业将面临成本压力。投资者应密切关注冲突发展态势、国际调停进展以及各国政策应对，同时关注能源转型背景下传统能源公司的长期投资价值。在不确定性加剧的环境中，多元化配置和风险管理显得尤为重要。"
-                local stocks="\$XOM \$CVX \$LMT \$RTX \$NOC \$MAERSK-B.CO \$0883.HK \$2222.SR"
-            else
-                local title="英伟达Q4财报创纪录，AI芯片需求持续爆发"
-                local content="### 一、事件深度解析
-
-2026年2月25日，英伟达（NVDA）发布了2026财年第四季度财报，交出了一份令人震撼的成绩单。公司Q4营收达到**681亿美元**，同比增长73%，超出市场预期约30亿美元。整个2026财年，英伟达总营收达到**2159亿美元**，同比增长65%。
-
-财报中最引人注目的是数据中心业务的爆炸性增长。该部门Q4收入同比增长75%，占公司总营收的**91%以上**，成为绝对的核心增长引擎。CEO黄仁勋在财报电话会议中表示：\"计算需求正在指数级增长——代理AI的拐点已经到来。Grace Blackwell与NVLink是当今推理之王，每token成本降低了一个数量级。\"
-
-更令人惊讶的是公司的未来指引：2027财年Q1营收指引为**780亿美元**，显示出AI基础设施建设需求的持续强劲。同时，公司总供应相关承诺从Q3的503亿美元激增至Q4的**952亿美元**，表明客户对英伟达AI芯片的需求远未见顶。
-
-### 二、对股票的结构性影响
-
-英伟达的超预期表现正在重塑整个科技股的投资逻辑：
-
-**半导体产业链全面受益**
-- **台积电（TSM）**：作为英伟达先进制程的主要供应商，7nm/5nm产能利用率维持在历史高位
-- **AMD（AMD）**：虽然市场份额较小，但在特定推理场景中获得关注，特别是在Vera Rubin架构推出后
-- **美光（MU）**：HBM高带宽内存需求激增，直接受益于AI服务器配置升级
-
-**云计算巨头资本开支激增**
-- **微软（MSFT）、亚马逊（AMZN）、谷歌（GOOGL）、Meta（META）**：四大超大规模云服务商的年度资本支出预计接近**7000亿美元**，主要用于AI基础设施建设
-- 这些公司的AI投资直接转化为英伟达等硬件供应商的订单增长
-
-**AI应用层估值逻辑重构**
-- 随着AI基础设施成本下降和性能提升，AI应用公司的商业化路径更加清晰
-- 从概念验证阶段转向实际盈利，相关软件和服务公司的估值逻辑发生根本性变化
-
-**市场情绪与竞争格局**
-值得注意的是，尽管业绩超预期，但英伟达股价在财报后出现波动。分析师指出，市场担忧AI计算重心可能从训练转向推理，这可能为竞争对手创造机会。然而，英伟达最新推出的Vera Rubin芯片专门针对推理优化，显示公司已做好充分准备。
-
-### 三、结语
-
-英伟达正站在AI工业革命的中心位置，其\"AI工厂\"定位愈发清晰。从财报数据看，AI基础设施建设仍处于早期阶段，需求增长远未见顶。虽然市场竞争加剧，但英伟达在生态系统、软件栈和客户关系方面的护城河依然深厚。投资者应关注公司在推理市场的技术进展、供应链能力以及客户集中度变化，这些因素将决定其能否持续引领这一轮AI技术革命。"
-                local stocks="\$NVDA \$AMD \$TSM \$MU \$MSFT \$AMZN \$GOOGL \$META"
-            fi
+            local stocks="\$XOM \$CVX \$LMT \$RTX \$NOC \$MAERSK-B.CO \$0883.HK \$2222.SR"
             
             # 生成Markdown文件
             local md_file="$OUTPUT_DIR/article_$(date +%Y%m%d_%H%M%S).md"
@@ -345,8 +329,8 @@ main() {
             echo "- Markdown: $md_file" >&2
             echo "- HTML(Docs): $html_file" >&2
             
-            # 推送到GitHub
-            push_to_github "$md_file"
+            # 推送到GitHub（按日期归档）
+            push_to_github_archived "$md_file" "$title"
             ;;
         "help"|*)
             cat <<EOF
@@ -362,7 +346,8 @@ xueqiu-article-generator - 雪球文章生成器
   - 支持响应式HTML设计，适合移动端阅读
   - 包含专业的投资分析内容结构
   - 自动生成相关股票标签
-  - 自动推送到GitHub仓库
+  - 自动推送到GitHub仓库 (https://github.com/CrazyJoey/xueqiu-articles)
+  - 按日期归档：YYYY/MM/DD/文件名.md
 
 配置文件: $CONFIG_FILE
 EOF
